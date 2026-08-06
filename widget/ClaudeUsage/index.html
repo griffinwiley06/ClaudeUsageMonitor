@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Claude Usage</title>
+    <link rel="icon" type="image/svg+xml" href="resources/icon.svg" />
+    <style>
+      :root {
+        --neutral: #5aa9e6;
+        --amber:   #ffb020;
+        --red:     #ff453a;
+        --card:    #1d1f23;
+        --track:   #34373d;
+        --name:    #e9ebee;
+        --muted:   #9aa0a6;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 100%; height: 100%; }
+      body {
+        background: #000;
+        color: var(--name);
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: clamp(2vh, 4vmin, 3vh);
+        padding: clamp(2.5vh, 5vmin, 4vh) clamp(2.5vw, 4vmin, 4vw);
+        overflow: hidden;
+        transition: opacity .3s ease, filter .3s ease;
+      }
+
+      .card {
+        background: var(--card);
+        border-radius: clamp(1.6vh, 3.2vmin, 2.6vh);
+        padding: clamp(1.8vh, 3.4vmin, 2.6vh) clamp(3vw, 4.5vmin, 4.5vw);
+        display: flex;
+        flex-direction: column;
+        gap: clamp(1.2vh, 2.4vmin, 2vh);
+      }
+
+      .top {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: clamp(2vw, 3vmin, 3vw);
+        line-height: 1;
+      }
+      .name {
+        font-weight: 600;
+        font-size: clamp(7vh, 10vmin, 10.5vh);
+        color: var(--name);
+        white-space: nowrap;
+      }
+      .right {
+        display: flex;
+        align-items: baseline;
+        gap: clamp(2vw, 3vmin, 3.5vw);
+        white-space: nowrap;
+      }
+      .reset { font-size: clamp(5vh, 7.5vmin, 7vh); color: var(--muted); }
+      .reset:empty { display: none; }
+      .pct {
+        font-size: clamp(8vh, 11.5vmin, 11.5vh);
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        color: var(--name);
+      }
+
+      .track {
+        width: 100%;
+        height: clamp(2.2vh, 3.6vmin, 3.2vh);
+        background: var(--track);
+        border-radius: 50vh;
+        overflow: hidden;
+      }
+      .fill {
+        height: 100%;
+        width: var(--pct, 0%);
+        border-radius: 50vh;
+        background: var(--neutral);
+        transition: width .6s ease, background-color .3s ease;
+      }
+      .fill.amber   { background: var(--amber); }
+      .fill.red     { background: var(--red); }
+      .fill.neutral { background: var(--neutral); }
+
+      /* Stale or unreachable helper: dim the whole panel, keep last values. */
+      body.dim { opacity: 0.3; filter: saturate(0.55); }
+    </style>
+  </head>
+  <body class="dim">
+    <div class="card">
+      <div class="top">
+        <span class="name">5-hour limit</span>
+        <span class="right">
+          <span class="reset" id="reset-5h"></span>
+          <span class="pct" id="pct-5h">--</span>
+        </span>
+      </div>
+      <div class="track"><div class="fill neutral" id="fill-5h"></div></div>
+    </div>
+
+    <div class="card">
+      <div class="top">
+        <span class="name">Weekly &middot; all models</span>
+        <span class="right">
+          <span class="reset" id="reset-7d"></span>
+          <span class="pct" id="pct-7d">--</span>
+        </span>
+      </div>
+      <div class="track"><div class="fill neutral" id="fill-7d"></div></div>
+    </div>
+
+    <script>
+      (function () {
+        var EP = "http://127.0.0.1:8787/usage";
+        var last = { fh: null, sd: null, fhReset: null, sdReset: null };
+
+        function tier(p) {
+          if (p == null) return "neutral";
+          if (p > 85) return "red";      // above 85 -> red
+          if (p >= 60) return "amber";   // 60..85  -> amber
+          return "neutral";              // under 60 -> neutral
+        }
+
+        // resets_at is epoch SECONDS (matches the API). Returns "" when absent,
+        // so the reset span collapses (see .reset:empty) until we have real data.
+        function fmtReset(key, epochSec) {
+          if (!epochSec) return "";
+          var d = new Date(epochSec * 1000);
+          var diff = d.getTime() - Date.now();
+          if (diff < 0) return "";
+          if (key === "5h") {
+            var mins = Math.floor(diff / 60000);
+            var h = Math.floor(mins / 60);
+            var m = mins % 60;
+            return "Resets in " + (h > 0 ? h + " hr " : "") + m + " min";
+          }
+          var days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+          var hh = d.getHours(), ap = hh >= 12 ? "PM" : "AM", h12 = hh % 12 || 12;
+          var mm = d.getMinutes(); mm = mm < 10 ? "0" + mm : mm;
+          return "Resets " + days[d.getDay()] + " " + h12 + ":" + mm + " " + ap;
+        }
+
+        function setMeter(key, p, resetSec) {
+          var fill = document.getElementById("fill-" + key);
+          var pct  = document.getElementById("pct-" + key);
+          var rst  = document.getElementById("reset-" + key);
+          var t = tier(p);
+          fill.className = "fill " + t;
+          fill.style.setProperty("--pct", (p == null ? 0 : Math.max(0, Math.min(100, p))) + "%");
+          pct.textContent = (p == null ? "--" : p + "%");
+          rst.textContent = fmtReset(key, resetSec);
+        }
+
+        function render(dim) {
+          document.body.classList.toggle("dim", !!dim);
+          setMeter("5h", last.fh, last.fhReset);
+          setMeter("7d", last.sd, last.sdReset);
+        }
+
+        function poll() {
+          fetch(EP + "?t=" + Date.now(), { cache: "no-store" })
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+              var fh = (d && d.five_hour) ? d.five_hour.used_percentage : null;
+              var sd = (d && d.seven_day) ? d.seven_day.used_percentage : null;
+              if (fh != null) last.fh = fh;
+              if (sd != null) last.sd = sd;
+              if (d && d.five_hour) last.fhReset = d.five_hour.resets_at;
+              if (d && d.seven_day) last.sdReset = d.seven_day.resets_at;
+              var dim = (d.status !== "ok") || d.stale === true || fh == null || sd == null;
+              render(dim);
+            })
+            .catch(function () {
+              render(true); // helper unreachable -> dimmed, keep last known values
+            });
+        }
+
+        poll();
+        setInterval(poll, 60000);
+      })();
+    </script>
+  </body>
+</html>

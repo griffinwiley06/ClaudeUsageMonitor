@@ -1,0 +1,12 @@
+# Build outputs — rebuild with:  icuewidget package <dir>
+*.icuewidget
+
+# Local Claude Code / editor state
+.claude/settings.local.json
+
+# Windows / editor cruft
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+*.log
+*.tmp
