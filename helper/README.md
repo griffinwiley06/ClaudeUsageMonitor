@@ -26,7 +26,6 @@ The helper reads **that file** — it never reads, stores, or logs any token.
   "as_of": "2026-08-06T16:15:58-05:00",   // timestamp of the sample
   "age_seconds": 234,
   "source": "desktop-cache",
-  "org": "…",
   "served_at": "2026-08-06T16:19:52-05:00"
 }
 ```

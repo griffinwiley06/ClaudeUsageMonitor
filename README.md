@@ -4,9 +4,7 @@ Show your Claude subscription usage — the **5‑hour** and **7‑day** limits 
 320×170 LCD of a Corsair Vanguard 96 / Vanguard Pro 96 keyboard, as a custom
 iCUE widget.
 
-![two rounded cards: "5-hour limit 83%" with an amber bar, "Weekly · all models 29%" with a blue bar](docs/preview.png)
-
-*(The image above is optional — drop a screenshot at `docs/preview.png` if you want it to render.)*
+![Corsair Vanguard 96 keyboard LCD showing two bars: "5-hour limit 12%" and "Weekly · all models 32%"](docs/preview.jpg)
 
 ## How it works
 
@@ -23,7 +21,9 @@ flowchart LR
 ```
 
 **No token is ever read, stored, or logged.** The helper only reads a local
-cache file and binds to `127.0.0.1` only.
+cache file and binds to `127.0.0.1` only. It serves just the two usage
+percentages and their freshness, with no account IDs or file paths, so nothing
+identifying is exposed to other software on the machine.
 
 ## Requirements
 
@@ -86,6 +86,7 @@ file, fix it there and nowhere else.
 ```
 helper/     the local service (PowerShell) + login launcher
 widget/     the iCUE keyboard_lcd widget source
+docs/       README images
 spike/      throwaway Phase-0 connectivity test (proves the LCD webview can
             fetch http://127.0.0.1) — safe to delete
 ```

@@ -122,8 +122,6 @@ function Build-Payload {
         as_of       = $asOf
         age_seconds = $ageSec
         source      = 'desktop-cache'
-        source_path = $use.srcPath
-        org         = $use.org
         served_at   = (Get-Date).ToString('o')
     }
 }
